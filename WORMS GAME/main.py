@@ -20,7 +20,7 @@ GRAVITY = 0.75
 moving_left = False
 moving_right = False
 grenade = False
-
+grenade_thrown = False
 grenade_img = pygame.image.load("img/Grenade/0.png").convert_alpha()
 BG=(144,201,120)
 RED=(255,0,0)
@@ -127,30 +127,35 @@ class Character(pygame.sprite.Sprite):
     def draw(self):
         screen.blit(pygame.transform.flip(self.image,self.flip, False), self.rect)
 
-class Granade(pygame.sprite.Sprite):
+class Grenade(pygame.sprite.Sprite):
     def __init__(self,x,y,direction):
         super().__init__()
         self.timer = 100
         self.vel_y = -11
         self.speed = 7
-        self.image = granade_img
+        self.image = grenade_img
         self.rect = self.image.get_rect()
-        self.recr.center = (x, y)
+        self.rect.center = (x, y)
         self.direction = direction
     def update(self):
-        self.rect.x += (self.direction * self.speed)
+        self.vel_y += GRAVITY
+        dx = self.direction * self.speed
+        dy = self.vel_y
+        #mise à jour grenade position
+        self.rect.x +=dx
+        self.rect.y +=dy
         if self.rect.right < 0 or self.rect.left > screen_width:
             self.kill()
-        if pygame.sprite.spritecollide(player,bullet_group, False):
-            if player.alive:
-                player.health -=10
+        if pygame.sprite.spritecollide(player,grenade_group, False):
+            if player2.alive:
+                player2.health -=10
                 self.kill()
-        if pygame.sprite.spritecollide(player2,bullet_group, False):
+        if pygame.sprite.spritecollide(player2,grenade_group, False):
             if player.alive:
                 player.health -=10
                 self.kill()
 
-granade_group = pygame.sprite.Group()
+grenade_group = pygame.sprite.Group()
 
 player = Character("character",200, 200, 0.2, 5, 3)
 player2 = Character("character2",400, 200, 0.2, 5, 3)
@@ -166,13 +171,14 @@ while run:
     player.update()
     player2.draw()
     player2.update()
-    granade_group.update()
-    granade_group.draw(screen)
+    grenade_group.update()
+    grenade_group.draw(screen)
     #mise à jour d'actions
     if player.alive:
-        if grenade:
-            player.grenade = Grenade(player.rect.centerx + (0.5 * player.rect.size[0] * player.direction), player.rect.top,player.direction)
-            grenade_group
+        if grenade and grenade_thrown == False:
+            grenade = Grenade(player.rect.centerx + (0.5 * player.rect.size[0] * player.direction), player.rect.top,player.direction)
+            grenade_group.add(grenade)
+            grenade_thrown = True
         if player.in_air:
             player.update_action(2)
         elif moving_left or moving_right:
@@ -193,8 +199,8 @@ while run:
                 moving_right = True
             if event.key == pygame.K_ESCAPE :
                 run = False
-            if event.key == pygame.K_q:
-                grenade = true
+            if event.key == pygame.K_a:
+                grenade = True
             if event.key == pygame.K_z and player.alive:
                 player.jump = True
         if event.type == pygame.KEYUP:
@@ -202,7 +208,8 @@ while run:
                 moving_left = False
             if event.key == pygame.K_d:
                 moving_right = False
-            if event.key == pygame.K_q:
+            if event.key == pygame.K_a:
                 grenade = False
+                grenade_thrown = False
 
     pygame.display.update()
