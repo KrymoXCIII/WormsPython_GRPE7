@@ -141,6 +141,13 @@ class Grenade(pygame.sprite.Sprite):
         self.vel_y += GRAVITY
         dx = self.direction * self.speed
         dy = self.vel_y
+        #condition grenade et le sol
+        if self.rect.bottom + dy >300:
+            dy = 300 - self.rect.bottom
+            self.speed = 0
+        #condition reflet grenade
+        if self.rect.left + dx < 0 or self.rect.right + dx > screen_width:
+            self.direction *= -1
         #mise à jour grenade position
         self.rect.x +=dx
         self.rect.y +=dy
