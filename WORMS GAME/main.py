@@ -21,14 +21,15 @@ moving_right = False
 grenade = False
 grenade_thrown = False
 grenade_img = pygame.image.load("img/Grenade/0.png").convert_alpha()
+caisse_img = pygame.image.load("img/ObjetCassable/caisse.png").convert_alpha()
+caisse_casse_img = pygame.image.load("img/ObjetCassable/DestructibleObject.png").convert_alpha()
 BG=(144,201,120)
-
 # Variable COLOR
 RED=(255,0,0)
 WHITE = (255, 255 , 255)
 GREEN = (0, 255, 0)
 BLACK = (0, 0, 0)
-
+Tour = 0
 font = pygame.font.SysFont("ROBOTO",30)
 
 def draw_text(text,font,text_color,x,y):
@@ -142,7 +143,8 @@ class Character(pygame.sprite.Sprite):
         if self.health <= 0:
             self.health = 0
             self.speed = 0
-            self.alive= False
+            self.alive = False
+            self.turn_play = False
             self.update_action(3)
 
 
@@ -153,6 +155,17 @@ class HealthBar():
     def __init__(self,x,y,health, max_health):
         self.x = x
         self.y = y
+        self.health = health
+        self.max_health = max_health
+    def draw(self,health):
+        #mise à jour de vie
+        self.health = health
+        #pourcentage entre le rouge et vert
+        ratio = self.health / self.max_health
+        pygame.draw.rect(screen,BLACK, (self.x - 2,self.y -2 ,154 , 24))
+        pygame.draw.rect(screen,RED,(self.x,self.y,150,20))
+        pygame.draw.rect(screen,GREEN,(self.x,self.y,150 * ratio,20))
+
 class Grenade(pygame.sprite.Sprite):
     def __init__(self,x,y,direction):
         super().__init__()
@@ -175,8 +188,8 @@ class Grenade(pygame.sprite.Sprite):
         if self.rect.left + dx < 0 or self.rect.right + dx > screen_width:
             self.direction *= -1
         #mise à jour grenade position
-        self.rect.x +=dx
-        self.rect.y +=dy
+        self.rect.x += dx
+        self.rect.y += dy
         #grenade explosion temps
         self.timer -=1
         if self.timer <= 0:
@@ -184,18 +197,14 @@ class Grenade(pygame.sprite.Sprite):
             explosion = Explosion(self.rect.x,self.rect.y,1)
             explosion_group.add(explosion)
             #explose damage dans une cercle
-            for player in player_group:
-                if abs(self.rect.centerx - player.rect.centerx) < TILE_SIZE * 2 and abs(self.rect.centery - player.rect.centery) < TILE_SIZE * 2:
-                    player.health -= 20
-                if abs(self.rect.centerx - player.rect.centerx) < TILE_SIZE * 3 and abs(self.rect.centery - player.rect.centery) < TILE_SIZE * 3:
-                    player.health -= 10
-
-            for player2 in player2_group:
-                if abs(self.rect.centerx - player2.rect.centerx) < TILE_SIZE * 3 and abs(self.rect.centery - player2.rect.centery) < TILE_SIZE * 3:
-                    player2.health -= 10
-                if abs(self.rect.centerx - player2.rect.centerx) < TILE_SIZE * 2 and abs(self.rect.centery - player2.rect.centery) < TILE_SIZE * 2:
-                    player2.health -= 20
-
+            for allplayer in allplayer_group:
+                if abs(self.rect.centerx - allplayer.rect.centerx) < TILE_SIZE * 2 and abs(self.rect.centery - allplayer.rect.centery) < TILE_SIZE * 2:
+                    allplayer.health -= 20
+                if abs(self.rect.centerx - allplayer.rect.centerx) < TILE_SIZE * 3 and abs(self.rect.centery - allplayer.rect.centery) < TILE_SIZE * 3:
+                    allplayer.health -= 10
+            for caissee in caisse_group:
+                if abs(self.rect.centerx - caissee.rect.centerx) < TILE_SIZE * 2 and abs(self.rect.centery - caissee.rect.centery) < TILE_SIZE * 2:
+                    caissee.update()
 class Explosion(pygame.sprite.Sprite):
     def __init__(self,x,y,scale):
         super().__init__()
@@ -219,58 +228,69 @@ class Explosion(pygame.sprite.Sprite):
                 self.kill()
             else:
                 self.image = self.images[self.frame_index]
-
+class Caisse(pygame.sprite.Sprite):
+    def __init__(self,x,y,scale):
+        super().__init__()
+        self.scale = scale
+        img = pygame.transform.scale(caisse_img, (int(caisse_img.get_width() * scale), int(caisse_img.get_height() * scale)))
+        imgCassé = pygame.transform.scale(caisse_casse_img, (int(caisse_casse_img.get_width() * scale), int(caisse_casse_img.get_height() * scale)))
+        self.image = img
+        self.rect = self.image.get_rect()
+        self.rect.center = (x, y)
+        self.images = []
+        self.images.append(img)
+        self.images.append(imgCassé)
+    def update(self):
+        self.image = self.images[1]
 grenade_group = pygame.sprite.Group()
 explosion_group = pygame.sprite.Group()
+caisse_group = pygame.sprite.Group()
+allplayer_group = pygame.sprite.Group()
 player_group = pygame.sprite.Group()
 player2_group = pygame.sprite.Group()
-allplayer_group = pygame.sprite.Group()
-player = Character("character",200, 200, 0.2, 5)
 
-player2 = Character("character",400, 250, 0.2, 5)
-player2_2 = Character("character",600, 250, 0.2 , 5)
+player = Character("character",200, 200, 0.2, 5)
+health_bar = HealthBar(10, 40, player.health, player.health)
+player2 = Character("character",400, 200, 0.2, 5)
+health_bar2 = HealthBar(screen_width - 160, 40, player2.health, player2.health)
+caisse = Caisse(500,300-caisse_img.get_height(),2)
 player2_group.add(player2)
-player2_group.add(player2_2)
 player_group.add(player)
 allplayer_group.add(player)
 allplayer_group.add(player2)
-allplayer_group.add(player2_2)
+caisse_group.add(caisse)
 player.turn_play = True
 run = True
 #Affichage
 while run:
     clock.tick(FPS)
     draw_bg()
+    #affichage barre de vie
+    draw_text("PLAYER 1", font, WHITE, 10, 10)
+    health_bar.draw(player.health)
+    draw_text("PLAYER 2", font, WHITE, screen_width - 110, 10)
+    health_bar2.draw(player2.health)
+    #donne la gravité à ce qui ne jouent pas
     for allplayer in allplayer_group:
-        if allplayer.time_round <= 0:
+        if not allplayer.turn_play:
             allplayer.set_gravity()
-    if player.time_round > 0:
-        player.move(moving_left, moving_right, True)
-        player.update(True)
-        player2.update(False)
-    else:
-        player2.move(moving_left, moving_right, True)
-        player2.update(True)
-        player.update(False)
-        player.turn_play = False
-        player2.turn_play = True
-    player.draw()
-    player.update_animation(True)
-
-
-    for player2 in player2_group:
-        player2.draw()
-        player2.update(False)
-        player2.update_animation(True)
+            allplayer.update(True)
+            allplayer.update_animation(True)
+        if allplayer.turn_play and allplayer.alive:
+            allplayer.move(moving_left, moving_right, True)
+            allplayer.update(True)
+            allplayer.update_animation(True)
+        allplayer.draw()
     grenade_group.update()
     explosion_group.update()
     grenade_group.draw(screen)
     explosion_group.draw(screen)
+    caisse_group.draw(screen)
     #mise à jour d'actions
     for allplayer in allplayer_group:
         if allplayer.alive and allplayer.turn_play:
             if grenade and grenade_thrown == False:
-                grenade = Grenade(allplayer.rect.centerx + (0.5 * allplayer.rect.size[0] * player.direction), allplayer.rect.top,allplayer.direction)
+                grenade = Grenade(allplayer.rect.centerx + (allplayer.direction), allplayer.rect.top,allplayer.direction)
                 grenade_group.add(grenade)
                 grenade_thrown = True
             if allplayer.in_air:
@@ -284,7 +304,6 @@ while run:
             run = False
             pygame.quit()
             sys.exit()
-
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_q:
                 moving_left = True
@@ -294,8 +313,9 @@ while run:
                 run = False
             if event.key == pygame.K_a:
                 grenade = True
-            if event.key == pygame.K_z and player.alive:
-                player.jump = True
+            for allplayer in allplayer_group:
+                if event.key == pygame.K_z and allplayer.alive:
+                    allplayer.jump = True
         if event.type == pygame.KEYUP:
             if event.key == pygame.K_q:
                 moving_left = False
@@ -304,5 +324,25 @@ while run:
             if event.key == pygame.K_a:
                 grenade = False
                 grenade_thrown = False
+                next = False
+                #Changement de tour apres tir
+                for allplayer in allplayer_group:
+                    Tour += 1
+                    if allplayer.alive:
+                        if next:
+                            allplayer.turn_play = True
+                            Tour = 0
+                            break
+                        if allplayer.turn_play:
+                            allplayer.turn_play = False
+                            next = True
+
+                    if Tour == len(allplayer_group):
+                        for allplayer in allplayer_group:
+                            if allplayer.alive:
+                                allplayer.turn_play = True
+                                Tour = 0
+                                break
+
 
     pygame.display.update()
