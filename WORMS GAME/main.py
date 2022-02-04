@@ -1,6 +1,8 @@
 import os
 import pygame
 import sys
+from math import *
+import math
 from pygame.locals import *
 
 pygame.init()
@@ -31,7 +33,24 @@ GREEN = (0, 255, 0)
 BLACK = (0, 0, 0)
 Tour = 0
 font = pygame.font.SysFont("ROBOTO",30)
+g = 9.8
+def trajectoire(angle,x,y0):
+    val = 9.8*(pow(x,2)/(2*pow(50,2)*pow(cos(angle),2)))+tan(angle)*x+y0
+    return val
 
+def calculeAngle():
+    x = 0
+    y = 0
+    angle = 0
+    for i in pygame.mouse.get_pos():
+        if x == 0:
+            x = i
+        else:
+            y = i
+    for allplayer in allplayer_group:
+        if allplayer.turn_play:
+            angle = 90-(math.degrees(math.atan(abs(allplayer.rect.x+allplayer.image.get_width() - x) / abs(300 - y))))
+    return angle
 def draw_text(text,font,text_color,x,y):
     img = font.render(text, True, text_color)
     screen.blit(img,(x,y))
@@ -300,6 +319,27 @@ while run:
             else:
                 allplayer.update_action(0)
     for event in pygame.event.get():
+
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if event.button == 1:
+                for allplayer in allplayer_group:
+                    if allplayer.turn_play:
+                        if allplayer.direction == -1:
+                            for x in range(0, -1000, -1):
+                                y = trajectoire(45, x, 300)
+                                pygame.draw.rect(screen, RED,
+                                                 pygame.Rect(allplayer.rect.x + x, y, 2,
+                                                             2))
+                                pygame.display.flip()
+                        else:
+                            for x in range(0, -1000, -1):
+                                y = trajectoire(45, x, 300)
+                                pygame.draw.rect(screen, RED,
+                                                 pygame.Rect(allplayer.rect.x - x + allplayer.image.get_width(), y, 2,
+                                                             2))
+                                pygame.display.flip()
+                        break
+
         if event.type == pygame.QUIT:
             run = False
             pygame.quit()
