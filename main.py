@@ -287,7 +287,7 @@ class Rocket(pygame.sprite.Sprite):
 class Grenade(pygame.sprite.Sprite):
     def __init__(self,x,y,direction):
         super().__init__()
-        self.timer = 100
+        self.timer = 250
         self.vel_y = -11
         self.speed = 7
         self.image = grenade_img
