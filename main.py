@@ -5,7 +5,7 @@ from math import *
 import math
 from pygame.locals import *
 import csv
-
+import startButton
 
 
 def main():
@@ -21,10 +21,13 @@ def main():
 
     # gravité
     GRAVITY = 0.75
+
     ROWS = 16
     COLS = 150
     TILE_SIZE = screen_height // ROWS
     TILE_TYPES = 8
+
+    start_game = False
 
     moving_left = False
     moving_right = False
@@ -47,7 +50,13 @@ def main():
         img = pygame.image.load(f"img/tile/{x}.png")
         img = pygame.transform.scale(img, (TILE_SIZE, TILE_SIZE))
         img_list.append(img)
+
+
     BG = (144, 201, 120)
+    bg_Image =pygame.image.load("img/Background/background.jpg").convert_alpha()
+    start_img = pygame.image.load('img/Menu/start_btn.png').convert_alpha()
+    exit_img = pygame.image.load('img/Menu/exit_btn.png').convert_alpha()
+    restart_img = pygame.image.load('img/Menu/restart_btn.png').convert_alpha()
     # Variable COLOR
     RED = (255, 0, 0)
     WHITE = (255, 255, 255)
@@ -88,7 +97,7 @@ def main():
 
     def draw_bg():
         screen.fill(BG)
-        pygame.draw.line(screen, RED, (0, 300), (screen_width, 300))
+        screen.blit(bg_Image,(0,0))
 
     class Character(pygame.sprite.Sprite):
         def __init__(self, char_type, x, y, scale, speed):
@@ -164,6 +173,8 @@ def main():
                         self.vel_y = 0
                         self.in_air = False
                         dy = tile[1].top - self.rect.bottom
+            if self.rect.left +dx <0 or self.rect.right + dx > screen_width:
+                dx = 0
             self.rect.x += dx
             self.rect.y += dy
 
@@ -340,7 +351,7 @@ def main():
                     self.rebond += 1
                 if tile[1].colliderect(self.rect.x, XandY[1], self.width, self.height):
                     # calcul du vecteur vitesse à l'impact du sol
-                    if self.rebond < 3:
+                    if self.rebond < 4:
                         vx = self.speed * cos(math.radians(self.angletir))
                         vy = -(9.8) * self.time + self.speed * sin(math.radians(self.angletir))
                         self.speed = sqrt(pow(vy, 2) + pow(vx, 2))
@@ -353,7 +364,7 @@ def main():
                     else:
                         self.speed = 0
                     break
-            if not rebond and self.rebond < 3:
+            if not rebond and self.rebond < 4:
                 dx = XandY[0]
                 dy = XandY[1]
                 self.rect.x -= self.rect.x
@@ -469,7 +480,9 @@ def main():
         def update(self):
             self.image = self.images[1]
 
-
+    start_button = startButton.Button(screen_width//2 - 130,screen_height // 2 - 150, start_img,1)
+    exit_button = startButton.Button(screen_width // 2 - 110, screen_height // 2 + 50, exit_img, 1)
+    restart_button = startButton.Button(screen_width // 2 - 100, screen_height // 2 - 50, restart_img, 1)
 
     grenade_group = pygame.sprite.Group()
     rocket_group = pygame.sprite.Group()
@@ -509,83 +522,90 @@ def main():
     #Affichage
     while run:
         clock.tick(FPS)
-        draw_bg()
-        world.draw()
-        #affichage barre de vie
-        draw_text("PLAYER 1", font, WHITE, 10, 10)
-        health_bar.draw(player.health)
-        draw_text("PLAYER 2", font, WHITE, screen_width - 110, 10)
-        health_bar2.draw(player2.health)
-        if EndGAME:
-            font = pygame.font.SysFont("ROBOTO", 50)
-            draw_text("You WIN !", font , RED, screen_width/3, 100)
-            draw_text("For Playing a new game Press R !", font, RED, screen_width/3, 300)
-        #donne la gravité à ce qui ne jouent pas
-        for allplayer in allplayer_group:
-            if not allplayer.turn_play:
-                allplayer.set_gravity()
-                allplayer.update(True)
-                allplayer.update_animation(True)
-            if allplayer.turn_play and allplayer.alive:
-                allplayer.move(moving_left, moving_right, True)
-                allplayer.update(True)
-                allplayer.update_animation(True)
-            allplayer.draw()
-        rocket_group.update()
-        grenade_group.update()
-        explosion_group.update()
-        item_box_group.update()
-        grenade_group.draw(screen)
-        rocket_group.draw(screen)
-        explosion_group.draw(screen)
-        caisse_group.draw(screen)
-        item_box_group.draw(screen)
+        if start_game == False:
+            screen.fill(BG)
+            if start_button.draw(screen):
+                start_game = True
+            if exit_button.draw(screen):
+                run = False
+        else:
+            draw_bg()
+            world.draw()
+            #affichage barre de vie
+            draw_text("PLAYER 1", font, WHITE, 10, 10)
+            health_bar.draw(player.health)
+            draw_text("PLAYER 2", font, WHITE, screen_width - 110, 10)
+            health_bar2.draw(player2.health)
+            if EndGAME:
+                font2 = pygame.font.SysFont("ROBOTO", 50)
+                draw_text("You WIN !", font2 , RED, screen_width/3, 100)
+                draw_text("For Playing a new game Press R !", font2, RED, screen_width/3, 150)
+            #donne la gravité à ce qui ne jouent pas
+            for allplayer in allplayer_group:
+                if not allplayer.turn_play:
+                    allplayer.set_gravity()
+                    allplayer.update(True)
+                    allplayer.update_animation(True)
+                if allplayer.turn_play and allplayer.alive:
+                    allplayer.move(moving_left, moving_right, True)
+                    allplayer.update(True)
+                    allplayer.update_animation(True)
+                allplayer.draw()
+            rocket_group.update()
+            grenade_group.update()
+            explosion_group.update()
+            item_box_group.update()
+            grenade_group.draw(screen)
+            rocket_group.draw(screen)
+            explosion_group.draw(screen)
+            caisse_group.draw(screen)
+            item_box_group.draw(screen)
 
-        #mise à jour d'actions
-        for allplayer in allplayer_group:
-            if allplayer.rect.centerx<0 or allplayer.rect.centerx>screen_width or allplayer.rect.centery> screen_height or not allplayer.alive:
-                allplayer.kill()
-                EndGAME = True
-            if allplayer.alive and allplayer.turn_play:
-                if grenade and grenade_thrown == False and allplayer.arm == "Grenade":
-                    grenade = Grenade(allplayer.rect.centerx , allplayer.rect.top,allplayer.direction)
-                    grenade_group.add(grenade)
-                    grenade_thrown = True
-                if rocket and rocket_thrown == False and allplayer.arm == "Rocket":
-                    rocket = Rocket(allplayer.rect.centerx + (allplayer.direction*50), allplayer.rect.top+(allplayer.direction*-10),allplayer.direction,0.8)
-                    rocket_group.add(rocket)
-                    rocket_thrown = True
-                if allplayer.in_air:
-                    allplayer.update_action(2)
-                elif moving_left or moving_right:
-                    allplayer.update_action(1)
-                else:
-                    allplayer.update_action(0)
+            #mise à jour d'actions
+            for allplayer in allplayer_group:
+                if allplayer.rect.centerx<0 or allplayer.rect.centerx>screen_width or allplayer.rect.centery> screen_height or not allplayer.alive:
+                    allplayer.kill()
+                    EndGAME = True
+                if allplayer.alive and allplayer.turn_play:
+                    if grenade and grenade_thrown == False and allplayer.arm == "Grenade":
+                        grenade = Grenade(allplayer.rect.centerx , allplayer.rect.top,allplayer.direction)
+                        grenade_group.add(grenade)
+                        grenade_thrown = True
+                    if rocket and rocket_thrown == False and allplayer.arm == "Rocket":
+                        rocket = Rocket(allplayer.rect.centerx + (allplayer.direction*50), allplayer.rect.top+(allplayer.direction*-10),allplayer.direction,0.8)
+                        rocket_group.add(rocket)
+                        rocket_thrown = True
+                    if allplayer.in_air:
+                        allplayer.update_action(2)
+                    elif moving_left or moving_right:
+                        allplayer.update_action(1)
+                    else:
+                        allplayer.update_action(0)
 
-                # maintient du clique gauche de la souris
-            left, middle, right = pygame.mouse.get_pressed()
-            if left:
-                for allplayer in allplayer_group:
-                    if allplayer.turn_play:
-                        # si c'est au tour du joueur et qu'il regarde à droite on trace la courbe sinon on la trace à gauche
-                        if allplayer.direction == 1:
-                            for t in range(20):
-                                XandY = path(1, allplayer.rect.centerx, allplayer.rect.y, 40,
-                                             math.radians(calculeAngle()), t)
-                                pygame.draw.rect(screen, BLACK,
-                                                 pygame.Rect(XandY[0], XandY[1], 5,
-                                                             5))
+                    # maintient du clique gauche de la souris
+                left, middle, right = pygame.mouse.get_pressed()
+                if left:
+                    for allplayer in allplayer_group:
+                        if allplayer.turn_play:
+                            # si c'est au tour du joueur et qu'il regarde à droite on trace la courbe sinon on la trace à gauche
+                            if allplayer.direction == 1:
+                                for t in range(20):
+                                    XandY = path(1, allplayer.rect.centerx, allplayer.rect.y, 40,
+                                                 math.radians(calculeAngle()), t)
+                                    pygame.draw.rect(screen, BLACK,
+                                                     pygame.Rect(XandY[0], XandY[1], 5,
+                                                                 5))
 
 
-                        else:
-                            for t in range(20):
-                                XandY = path(-1, allplayer.rect.centerx, allplayer.rect.y, 40,
-                                             math.radians(calculeAngle()), t)
-                                pygame.draw.rect(screen, BLACK,
-                                                 pygame.Rect(XandY[0], XandY[1], 5,
-                                                             5))
+                            else:
+                                for t in range(20):
+                                    XandY = path(-1, allplayer.rect.centerx, allplayer.rect.y, 40,
+                                                 math.radians(calculeAngle()), t)
+                                    pygame.draw.rect(screen, BLACK,
+                                                     pygame.Rect(XandY[0], XandY[1], 5,
+                                                                 5))
 
-                        break
+                            break
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
