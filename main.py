@@ -103,7 +103,7 @@ def main():
         def __init__(self, char_type, x, y, scale, speed):
             super().__init__()
             self.alive = True  # vivant ou tuer
-            self.time_round = 300
+            self.time_round = 100
             self.turn_play = False
             self.char_type = char_type
             self.speed = speed
@@ -175,6 +175,10 @@ def main():
                         dy = tile[1].top - self.rect.bottom
             if self.rect.left +dx <0 or self.rect.right + dx > screen_width:
                 dx = 0
+            if self.time_round <= 0:
+                dx = 0
+                dy = 0
+
             self.rect.x += dx
             self.rect.y += dy
 
@@ -415,13 +419,13 @@ def main():
                         if tile == 0 or tile == 1 or tile == 2:
                             self.Objet_list.append(tile_data)
                         if tile == 6:
-                            player = Character("character", x * TILE_SIZE, y * TILE_SIZE, 0.15, 5)
+                            player = Character("character", x * TILE_SIZE, y * TILE_SIZE, 0.1, 5)
                             health_bar = HealthBar(10, 40, player.health, player.health)
                             player_group.add(player)
                             allplayer_group.add(player)
                             player.turn_play = True
                         if tile == 7:
-                            player2 = Character("character", x * TILE_SIZE, y * TILE_SIZE, 0.15, 5)
+                            player2 = Character("character", x * TILE_SIZE, y * TILE_SIZE, 0.1, 5)
                             health_bar2 = HealthBar(screen_width - 160, 40, player2.health, player2.health)
                             player2_group.add(player2)
                             allplayer_group.add(player2)
@@ -492,20 +496,7 @@ def main():
     player_group = pygame.sprite.Group()
     player2_group = pygame.sprite.Group()
     item_box_group = pygame.sprite.Group()
-    #item_box = ItemBox("Health",100,260)
-    #item_box_group.add(item_box)
-    #item_box = ItemBox("Rocket",500,260)
-    #item_box_group.add(item_box)
-    #player = Character("character",200, 200, 0.15, 5)
-    #health_bar = HealthBar(10, 40, player.health, player.health)
-    #player2 = Character("character",400, 200, 0.15, 5)
-    #health_bar2 = HealthBar(screen_width - 160, 40, player2.health, player2.health)
-    #caisse = Caisse(500,300-caisse_img.get_height(),2)
 
-    #caisse_group.add(caisse)
-
-
-    #map
     world_data = []
     for row in range(ROWS):
         r = [-1] * COLS
@@ -542,6 +533,8 @@ def main():
                 draw_text("For Playing a new game Press R !", font2, RED, screen_width/3, 150)
             #donne la gravité à ce qui ne jouent pas
             for allplayer in allplayer_group:
+                if allplayer.time_round<=0:
+                    allplayer.set_gravity()
                 if not allplayer.turn_play:
                     allplayer.set_gravity()
                     allplayer.update(True)
@@ -647,6 +640,7 @@ def main():
                             if next:
                                 allplayer.turn_play = True
                                 Tour = 0
+                                allplayer.time_round = 100
                                 break
                             if allplayer.turn_play:
                                 allplayer.turn_play = False
@@ -657,6 +651,7 @@ def main():
                                 if allplayer.alive:
                                     allplayer.turn_play = True
                                     Tour = 0
+                                    allplayer.time_round = 100
                                     break
 
 
