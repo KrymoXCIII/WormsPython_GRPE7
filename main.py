@@ -332,33 +332,20 @@ def main():
             self.width = self.image.get_width()
             self.height = self.image.get_height()
             self.time = 0
-            self.x0 = 0
-            self.y0 = 0
-            self.angletir = 0
+            self.x0 = self.rect.x
+            self.y0 = self.rect.y
+            self.angletir = calculeAngle()
             self.rebond = 0
 
         def update(self):
             dx = 0
             dy = 0
-            rebond = False
-            # initialisation des variables du tir de grenade
-            if self.time == 0 and self.x0 == 0:
-                self.x0 = self.rect.x
-                self.y0 = self.rect.y
-                self.angletir = calculeAngle()
             self.time += 0.15
             XandY = path(self.direction, self.x0, self.y0, self.speed,
                          math.radians(self.angletir), self.time)
             # condition grenade et le sol
             for tile in world.Objet_list:
-                if tile[1].colliderect(XandY[0], self.rect.y, self.width, self.height) and self.rebond < 5:
-                    self.direction *= -1
-                    self.x0 = self.rect.x
-                    self.y0 = self.rect.y
-                    self.speed /= 3
-                    rebond = True
-                    self.rebond += 1
-                elif tile[1].colliderect(self.rect.x, XandY[1], self.width, self.height):
+                if tile[1].colliderect(self.rect.x, XandY[1], self.width, self.height):
                     # calcul du vecteur vitesse à l'impact du sol
                     if self.rebond < 5:
                         vx = self.speed * cos(math.radians(self.angletir))
@@ -372,13 +359,21 @@ def main():
                         self.rebond += 1
                     else:
                         self.speed = 0
-                    break
-            if not rebond and self.rebond < 5:
+                    return
+                elif tile[1].colliderect(XandY[0], self.rect.y, self.width, self.height) and self.rebond < 5:
+                    self.direction *= -1
+                    self.x0 = self.rect.x
+                    self.speed /= 3
+                    return
+
+            XandY = path(self.direction, self.x0, self.y0, self.speed,
+                        math.radians(self.angletir), self.time)
+            if self.rebond < 5:
                 dx = XandY[0]
                 dy = XandY[1]
                 self.rect.x -= self.rect.x
                 self.rect.y -= self.rect.y
-            if self.rebond == 3:
+            if self.rebond == 5:
                 self.speed = 0
             # mise à jour grenade position
             self.rect.x += dx
@@ -403,10 +398,7 @@ def main():
                                 self.rect.centery - lite[1].y) < TILE_SIZE:
                             world.Objet_list.remove(lite)
                             break
-                for caissee in caisse_group:
-                    if abs(self.rect.centerx - caissee.rect.centerx) < TILE_SIZE * 2 and abs(
-                            self.rect.centery - caissee.rect.centery) < TILE_SIZE * 2:
-                        caissee.update()
+
 
     class World():
         def __init__(self):
@@ -472,23 +464,7 @@ def main():
                 else:
                     self.image = self.images[self.frame_index]
 
-    class Caisse(pygame.sprite.Sprite):
-        def __init__(self, x, y, scale):
-            super().__init__()
-            self.scale = scale
-            img = pygame.transform.scale(caisse_img,
-                                         (int(caisse_img.get_width() * scale), int(caisse_img.get_height() * scale)))
-            imgCassé = pygame.transform.scale(caisse_casse_img, (
-            int(caisse_casse_img.get_width() * scale), int(caisse_casse_img.get_height() * scale)))
-            self.image = img
-            self.rect = self.image.get_rect()
-            self.rect.center = (x, y)
-            self.images = []
-            self.images.append(img)
-            self.images.append(imgCassé)
 
-        def update(self):
-            self.image = self.images[1]
 
     start_button = startButton.Button(screen_width//2 - 130,screen_height // 2 - 150, start_img,1)
     exit_button = startButton.Button(screen_width // 2 - 110, screen_height // 2 + 50, exit_img, 1)
@@ -497,7 +473,6 @@ def main():
     grenade_group = pygame.sprite.Group()
     rocket_group = pygame.sprite.Group()
     explosion_group = pygame.sprite.Group()
-    caisse_group = pygame.sprite.Group()
     allplayer_group = pygame.sprite.Group()
     player_group = pygame.sprite.Group()
     player2_group = pygame.sprite.Group()
@@ -558,7 +533,6 @@ def main():
             grenade_group.draw(screen)
             rocket_group.draw(screen)
             explosion_group.draw(screen)
-            caisse_group.draw(screen)
             item_box_group.draw(screen)
 
             #mise à jour d'actions
@@ -610,7 +584,6 @@ def main():
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                run = False
                 pygame.quit()
                 sys.exit()
             if event.type == pygame.KEYDOWN:
