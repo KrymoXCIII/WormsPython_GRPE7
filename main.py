@@ -6,10 +6,11 @@ import math
 from pygame.locals import *
 import csv
 import startButton
-
-
+import random
+from pygame import mixer
 def main():
     pygame.init()
+    mixer.init()
     screen_width = 1000
     screen_height = int(screen_width * 0.8)
 
@@ -35,6 +36,15 @@ def main():
     grenade_thrown = False
     rocket = False
     rocket_thrown = False
+
+    pygame.mixer.music.load("music.mp3")
+    pygame.mixer.music.set_volume(0.3)
+    pygame.mixer.music.play(-1,0.0,5000)
+    jump_music=pygame.mixer.Sound("jump.wav")
+    jump_music.set_volume(0.5)
+    explose_music=pygame.mixer.Sound("explose.wav")
+    explose_music.set_volume(0.7)
+
     grenade_img = pygame.image.load("img/Grenade/0.png").convert_alpha()
     rocket_img = pygame.image.load("img/Rocket/0.png").convert_alpha()
     caisse_img = pygame.image.load("img/ObjetCassable/caisse.png").convert_alpha()
@@ -73,14 +83,8 @@ def main():
         return x, y
 
     def calculeAngle():
-        x = 0
-        y = 0
+        x,y = pygame.mouse.get_pos()
         angle = 0
-        for i in pygame.mouse.get_pos():
-            if x == 0:
-                x = i
-            else:
-                y = i
         for allplayer in allplayer_group:
             if allplayer.turn_play and y != allplayer.rect.y:
                 if allplayer.direction == 1:
@@ -347,15 +351,16 @@ def main():
                          math.radians(self.angletir), self.time)
             # condition grenade et le sol
             for tile in world.Objet_list:
-                if tile[1].colliderect(XandY[0], self.rect.y, self.width, self.height) and self.rebond < 3:
+                if tile[1].colliderect(XandY[0], self.rect.y, self.width, self.height) and self.rebond < 5:
                     self.direction *= -1
                     self.x0 = self.rect.x
+                    self.y0 = self.rect.y
                     self.speed /= 3
                     rebond = True
                     self.rebond += 1
-                if tile[1].colliderect(self.rect.x, XandY[1], self.width, self.height):
+                elif tile[1].colliderect(self.rect.x, XandY[1], self.width, self.height):
                     # calcul du vecteur vitesse à l'impact du sol
-                    if self.rebond < 4:
+                    if self.rebond < 5:
                         vx = self.speed * cos(math.radians(self.angletir))
                         vy = -(9.8) * self.time + self.speed * sin(math.radians(self.angletir))
                         self.speed = sqrt(pow(vy, 2) + pow(vx, 2))
@@ -368,7 +373,7 @@ def main():
                     else:
                         self.speed = 0
                     break
-            if not rebond and self.rebond < 4:
+            if not rebond and self.rebond < 5:
                 dx = XandY[0]
                 dy = XandY[1]
                 self.rect.x -= self.rect.x
@@ -458,6 +463,7 @@ def main():
         def update(self):
             EXPLOSION_SPEED = 4
             self.counter += 1
+            explose_music.play()
             if self.counter >= EXPLOSION_SPEED:
                 self.counter = 0
                 self.frame_index += 1
@@ -486,7 +492,7 @@ def main():
 
     start_button = startButton.Button(screen_width//2 - 130,screen_height // 2 - 150, start_img,1)
     exit_button = startButton.Button(screen_width // 2 - 110, screen_height // 2 + 50, exit_img, 1)
-    restart_button = startButton.Button(screen_width // 2 - 100, screen_height // 2 - 50, restart_img, 1)
+    restart_button = startButton.Button(screen_width // 2 - 100, screen_height // 2 - 50, restart_img, 2)
 
     grenade_group = pygame.sprite.Group()
     rocket_group = pygame.sprite.Group()
@@ -501,7 +507,9 @@ def main():
     for row in range(ROWS):
         r = [-1] * COLS
         world_data.append(r)
-    with open(f'0.csv', newline='') as csvfile:
+    nbMap = random.randint(0, 2)
+    strMap = str(nbMap)+'.csv'
+    with open(strMap, newline='') as csvfile:
         reader = csv.reader(csvfile, delimiter=',')
         for x, row in enumerate(reader):
             for y, tile in enumerate(row):
@@ -528,9 +536,8 @@ def main():
             draw_text("PLAYER 2", font, WHITE, screen_width - 110, 10)
             health_bar2.draw(player2.health)
             if EndGAME:
-                font2 = pygame.font.SysFont("ROBOTO", 50)
-                draw_text("You WIN !", font2 , RED, screen_width/3, 100)
-                draw_text("For Playing a new game Press R !", font2, RED, screen_width/3, 150)
+                if restart_button.draw(screen):
+                    main()
             #donne la gravité à ce qui ne jouent pas
             for allplayer in allplayer_group:
                 if allplayer.time_round<=0:
@@ -600,6 +607,7 @@ def main():
 
                             break
 
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
@@ -622,6 +630,7 @@ def main():
                 for allplayer in allplayer_group:
                     if event.key == pygame.K_z and allplayer.alive:
                         allplayer.jump = True
+                        jump_music.play()
             if event.type == pygame.KEYUP:
                 if event.key == pygame.K_q:
                     moving_left = False
