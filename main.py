@@ -104,11 +104,22 @@ def main():
         for allplayer in allplayer_group:
             if allplayer.turn_play and y != allplayer.rect.y:
                 if allplayer.direction == 1:
-                    angle = 90 - (
+                    if allplayer.rect.y<y:
+                        angle = (
                         math.degrees(math.atan(
-                            abs(allplayer.rect.x + allplayer.image.get_width() - x) / abs(allplayer.rect.y - y))))
+                            abs(allplayer.rect.x + allplayer.image.get_width() - x) / abs(allplayer.rect.y - y)))) -90
+                    else:
+
+                        angle = 90 - (
+                            math.degrees(math.atan(
+                                abs(allplayer.rect.x + allplayer.image.get_width() - x) / abs(allplayer.rect.y - y))))
                 else:
-                    angle = 90 - (math.degrees(math.atan(abs(allplayer.rect.x - x) / abs(allplayer.rect.y - y))))
+                    if allplayer.rect.y<y:
+                        angle = (
+                        math.degrees(math.atan(
+                            abs(allplayer.rect.x + allplayer.image.get_width() - x) / abs(allplayer.rect.y - y)))) -90
+                    else:
+                        angle = 90 - (math.degrees(math.atan(abs(allplayer.rect.x - x) / abs(allplayer.rect.y - y))))
         return angle
 
     def calculePuissance():
@@ -356,14 +367,10 @@ def main():
                                 self.rect.centery - allplayer.rect.centery) < TILE_SIZE:
                             allplayer.health -= 20
                         for lite in world.Objet_list:
-                            if abs(self.rect.centerx - lite[1].x) < TILE_SIZE and abs(
-                                    self.rect.centery - lite[1].y) < TILE_SIZE:
+                            if abs(self.rect.centerx - lite[1].x) < TILE_SIZE*1.2 and abs(
+                                    self.rect.centery - lite[1].y) < TILE_SIZE*1.2:
                                 world.Objet_list.remove(lite)
                                 break
-                    for caissee in caisse_group:
-                        if abs(self.rect.centerx - caissee.rect.centerx) < TILE_SIZE * 2 and abs(
-                                self.rect.centery - caissee.rect.centery) < TILE_SIZE * 2:
-                            caissee.update()
                     break
             dx = XandY[0]
             dy = XandY[1]
