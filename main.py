@@ -47,8 +47,6 @@ def main():
 
     grenade_img = pygame.image.load("img/Grenade/0.png").convert_alpha()
     rocket_img = pygame.image.load("img/Rocket/0.png").convert_alpha()
-    caisse_img = pygame.image.load("img/ObjetCassable/caisse.png").convert_alpha()
-    caisse_casse_img = pygame.image.load("img/ObjetCassable/DestructibleObject.png").convert_alpha()
     health_box_img = pygame.image.load("img/ObjetCassable/health_box.png").convert_alpha()
     rocket_box_img = pygame.image.load("img/ObjetCassable/rocket_box.png").convert_alpha()
     item_boxes = {
@@ -293,7 +291,7 @@ def main():
             self.speed = 7
             self.scale = scale
             img = pygame.transform.scale(rocket_img,
-                                         (int(caisse_img.get_width() * scale), int(caisse_img.get_height() * scale)))
+                                         (int(health_box_img.get_width() * scale), int(health_box_img.get_height() * scale)))
             self.image = img
             self.rect = self.image.get_rect()
             self.rect.center = (x, y)
@@ -355,25 +353,26 @@ def main():
                         self.x0 = self.rect.x
                         self.y0 = self.rect.y
                         self.time = 0
-                        rebond = True
                         self.rebond += 1
                     else:
                         self.speed = 0
                     return
-                elif tile[1].colliderect(XandY[0], self.rect.y, self.width, self.height) and self.rebond < 5:
+                if tile[1].colliderect(XandY[0], self.rect.y, self.width, self.height) and self.rebond < 5:
+                    self.rebond += 1
                     self.direction *= -1
                     self.x0 = self.rect.x
-                    self.speed /= 3
+                    self.y0 = self.rect.y
+                    self.time = 0
+                    self.angletir = 60
+                    self.speed/=2
                     return
 
-            XandY = path(self.direction, self.x0, self.y0, self.speed,
-                        math.radians(self.angletir), self.time)
             if self.rebond < 5:
                 dx = XandY[0]
                 dy = XandY[1]
                 self.rect.x -= self.rect.x
                 self.rect.y -= self.rect.y
-            if self.rebond == 5:
+            else:
                 self.speed = 0
             # mise à jour grenade position
             self.rect.x += dx
@@ -482,8 +481,8 @@ def main():
     for row in range(ROWS):
         r = [-1] * COLS
         world_data.append(r)
-    nbMap = random.randint(0, 2)
-    strMap = str(nbMap)+'.csv'
+    nbMap = random.randint(0, 3)
+    strMap = str(3)+'.csv'
     with open(strMap, newline='') as csvfile:
         reader = csv.reader(csvfile, delimiter=',')
         for x, row in enumerate(reader):
