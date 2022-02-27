@@ -8,6 +8,7 @@ import csv
 import startButton
 import random
 from pygame import mixer
+
 def main():
     pygame.init()
     mixer.init()
@@ -22,6 +23,12 @@ def main():
 
     # gravité
     GRAVITY = 0.75
+
+    # coeficient de frottement
+    k = 0.1
+
+    # force du vent
+    wind = 0
 
     ROWS = 16
     COLS = 150
@@ -47,6 +54,7 @@ def main():
 
     grenade_img = pygame.image.load("img/Grenade/0.png").convert_alpha()
     rocket_img = pygame.image.load("img/Rocket/0.png").convert_alpha()
+    caisse_img = pygame.image.load("img/ObjetCassable/caisse.png").convert_alpha()
     health_box_img = pygame.image.load("img/ObjetCassable/health_box.png").convert_alpha()
     rocket_box_img = pygame.image.load("img/ObjetCassable/rocket_box.png").convert_alpha()
     item_boxes = {
@@ -79,8 +87,15 @@ def main():
     EndGAME = False
 
     def path(direction, x0, y0, speed, angle, t):
+        g = 9.8
         x = direction * t * speed * cos(angle) + x0
-        y = (9.81 / 2) * pow(-t, 2) + speed * math.sin(angle) * -t + y0
+        y = (g / 2) * pow(-t, 2) + speed * math.sin(angle) * -t + y0
+        return x, y
+
+    def pathWithWind(direction, x0, y0, speed, angle, t, k, w):
+        g = 9.8
+        x = (x0 + (direction*(((speed) * cos(angle))/k) * (1-pow(e,-k*t)))) + t*w
+        y = y0 - ((speed * math.sin(angle))/k + ((g / 2)/pow(k,2))) * (1-pow(e, -k*t)) + ((g / 2)*t)/k
         return x, y
 
     def calculeAngle():
@@ -96,6 +111,14 @@ def main():
                     angle = 90 - (math.degrees(math.atan(abs(allplayer.rect.x - x) / abs(allplayer.rect.y - y))))
         return angle
 
+    def calculePuissance():
+        x, y = pygame.mouse.get_pos()
+        puissance = 0
+        for allplayer in allplayer_group:
+            if allplayer.turn_play:
+                puissance = sqrt(abs(pow(x-allplayer.rect.x,2) - pow(y-allplayer.rect.y,2)))
+        return puissance
+
     def draw_text(text, font, text_color, x, y):
         img = font.render(text, True, text_color)
         screen.blit(img, (x, y))
@@ -103,6 +126,9 @@ def main():
     def draw_bg():
         screen.fill(BG)
         screen.blit(bg_Image,(0,0))
+
+    def draw_wind():
+        pygame.draw.polygon(screen, RED, [(500, 100), (500, 50), (500 + wind, 75)])
 
     class Character(pygame.sprite.Sprite):
         def __init__(self, char_type, x, y, scale, speed):
@@ -291,34 +317,63 @@ def main():
         def __init__(self, x, y, direction, scale):
             super().__init__()
             self.vel_y = -11
-            self.speed = 7
+            self.speed = calculePuissance()
             self.scale = scale
             img = pygame.transform.scale(rocket_img,
-                                         (int(health_box_img.get_width() * scale), int(health_box_img.get_height() * scale)))
+                                         (int(caisse_img.get_width() * scale), int(caisse_img.get_height() * scale)))
             self.image = img
             self.rect = self.image.get_rect()
             self.rect.center = (x, y)
             self.direction = direction
+            self.width = self.image.get_width()
+            self.height = self.image.get_height()
+            self.time = 0
+            self.x0 = self.rect.x
+            self.y0 = self.rect.y
+            self.angletir = calculeAngle()
+            self.wind = wind
 
         def update(self):
-            self.vel_y += GRAVITY
-            dx = self.direction * self.speed
-            dy = self.vel_y
-            # condition rocket et le sol
+            dx = 0
+            dy = 0
+
+            # initialisation des variables du tir de rocket
+            self.time += 0.15
+            XandY = pathWithWind(self.direction, self.x0, self.y0, self.speed, math.radians(self.angletir), self.time,
+                                 k, self.wind)
+            # condition grenade et le sol
             for tile in world.Objet_list:
                 if tile[1].colliderect(self.rect):
                     self.kill()
                     explosion = Explosion(self.rect.x, self.rect.y, 1)
                     explosion_group.add(explosion)
-            # mise à jour rocket position
+                    # explose damage dans un cercle
+                    for allplayer in allplayer_group:
+                        if abs(self.rect.centerx - allplayer.rect.centerx) < TILE_SIZE * 0.8 and abs(
+                                self.rect.centery - allplayer.rect.centery) < TILE_SIZE * 0.8:
+                            allplayer.health -= 40
+                        if abs(self.rect.centerx - allplayer.rect.centerx) < TILE_SIZE and abs(
+                                self.rect.centery - allplayer.rect.centery) < TILE_SIZE:
+                            allplayer.health -= 20
+                        for lite in world.Objet_list:
+                            if abs(self.rect.centerx - lite[1].x) < TILE_SIZE and abs(
+                                    self.rect.centery - lite[1].y) < TILE_SIZE:
+                                world.Objet_list.remove(lite)
+                                break
+                    for caissee in caisse_group:
+                        if abs(self.rect.centerx - caissee.rect.centerx) < TILE_SIZE * 2 and abs(
+                                self.rect.centery - caissee.rect.centery) < TILE_SIZE * 2:
+                            caissee.update()
+                    break
+            dx = XandY[0]
+            dy = XandY[1]
+            self.rect.x -= self.rect.x
+            self.rect.y -= self.rect.y
+
             self.rect.x += dx
             self.rect.y += dy
-            for allplayer in allplayer_group:
-                if pygame.sprite.collide_rect(self, allplayer):
-                    allplayer.health -= 30
-                    self.kill()
-                    explosion = Explosion(self.rect.x, self.rect.y, 1)
-                    explosion_group.add(explosion)
+
+
 
     class Grenade(pygame.sprite.Sprite):
         def __init__(self, x, y, direction):
@@ -484,6 +539,7 @@ def main():
     grenade_group = pygame.sprite.Group()
     rocket_group = pygame.sprite.Group()
     explosion_group = pygame.sprite.Group()
+    caisse_group = pygame.sprite.Group()
     allplayer_group = pygame.sprite.Group()
     player_group = pygame.sprite.Group()
     player2_group = pygame.sprite.Group()
@@ -536,6 +592,7 @@ def main():
             health_bar.draw(player.health)
             draw_text("PLAYER 2", font, WHITE, screen_width - 110, 10)
             health_bar2.draw(player2.health)
+            draw_wind()
             if EndGAME:
                 if restart_button.draw(screen):
                     main()
@@ -573,11 +630,11 @@ def main():
                     EndGAME = True
                 if allplayer.alive and allplayer.turn_play:
                     if grenade and grenade_thrown == False and allplayer.arm == "Grenade":
-                        grenade = Grenade(allplayer.rect.centerx , allplayer.rect.top,allplayer.direction)
+                        grenade = Grenade(allplayer.rect.centerx, allplayer.rect.top, allplayer.direction)
                         grenade_group.add(grenade)
                         grenade_thrown = True
                     if rocket and rocket_thrown == False and allplayer.arm == "Rocket":
-                        rocket = Rocket(allplayer.rect.centerx + (allplayer.direction*50), allplayer.rect.top+(allplayer.direction*-10),allplayer.direction,0.8)
+                        rocket = Rocket(allplayer.rect.centerx, allplayer.rect.top, allplayer.direction, 0.8)
                         rocket_group.add(rocket)
                         rocket_thrown = True
                     if allplayer.in_air:
@@ -587,30 +644,26 @@ def main():
                     else:
                         allplayer.update_action(0)
 
-                    # maintient du clique gauche de la souris
-                left, middle, right = pygame.mouse.get_pressed()
-                if left:
-                    for allplayer in allplayer_group:
-                        if allplayer.turn_play:
-                            # si c'est au tour du joueur et qu'il regarde à droite on trace la courbe sinon on la trace à gauche
-                            if allplayer.direction == 1:
-                                for t in range(20):
-                                    XandY = path(1, allplayer.rect.centerx, allplayer.rect.y, 40,
-                                                 math.radians(calculeAngle()), t)
-                                    pygame.draw.rect(screen, BLACK,
-                                                     pygame.Rect(XandY[0], XandY[1], 5,
-                                                                 5))
-
-
-                            else:
-                                for t in range(20):
-                                    XandY = path(-1, allplayer.rect.centerx, allplayer.rect.y, 40,
-                                                 math.radians(calculeAngle()), t)
-                                    pygame.draw.rect(screen, BLACK,
-                                                     pygame.Rect(XandY[0], XandY[1], 5,
-                                                                 5))
-
-                            break
+                        # maintient du clique gauche de la souris
+                    left, middle, right = pygame.mouse.get_pressed()
+                    if left:
+                        for allplayer in allplayer_group:
+                            # si c'est au tour du joueur on trace la courbe
+                            if allplayer.turn_play:
+                                if allplayer.arm == "Rocket":
+                                    speed = calculePuissance()
+                                    for t in range(20):
+                                        XandY = path(allplayer.direction, allplayer.rect.centerx, allplayer.rect.top,
+                                                     speed, math.radians(calculeAngle()), t)
+                                        pygame.draw.rect(screen, BLACK, pygame.Rect(XandY[0], XandY[1], 5, 5))
+                                    break
+                                elif allplayer.arm == "Grenade":
+                                    speed = 40
+                                    for t in range(20):
+                                        XandY = path(allplayer.direction, allplayer.rect.centerx, allplayer.rect.top,
+                                                     speed, math.radians(calculeAngle()), t)
+                                        pygame.draw.rect(screen, BLACK, pygame.Rect(XandY[0], XandY[1], 5, 5))
+                                    break
 
 
         for event in pygame.event.get():
@@ -647,6 +700,7 @@ def main():
                     rocket_thrown = False
                     next = False
                     #Changement de tour apres tir
+                    wind = random.randrange(-50, 50)
                     for allplayer in allplayer_group:
                         Tour += 1
                         if allplayer.alive:
