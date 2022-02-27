@@ -62,9 +62,13 @@ def main():
 
     BG = (144, 201, 120)
     bg_Image =pygame.image.load("img/Background/background.jpg").convert_alpha()
-    start_img = pygame.image.load('img/Menu/start_btn.png').convert_alpha()
+    mini_restart_img = pygame.image.load('img/Menu/mini_restart.png').convert_alpha()
     exit_img = pygame.image.load('img/Menu/exit_btn.png').convert_alpha()
     restart_img = pygame.image.load('img/Menu/restart_btn.png').convert_alpha()
+    map_0 = pygame.image.load('img/Menu/map0.png').convert_alpha()
+    map_1 = pygame.image.load('img/Menu/map1.png').convert_alpha()
+    map_2 = pygame.image.load('img/Menu/map2.png').convert_alpha()
+    map_3 = pygame.image.load('img/Menu/map3.png').convert_alpha()
     # Variable COLOR
     RED = (255, 0, 0)
     WHITE = (255, 255, 255)
@@ -72,7 +76,6 @@ def main():
     BLACK = (0, 0, 0)
     Tour = 0
     font = pygame.font.SysFont("ROBOTO", 30)
-    g = 9.8
     EndGAME = False
 
     def path(direction, x0, y0, speed, angle, t):
@@ -346,14 +349,19 @@ def main():
                 if tile[1].colliderect(self.rect.x, XandY[1], self.width, self.height):
                     # calcul du vecteur vitesse à l'impact du sol
                     if self.rebond < 5:
-                        vx = self.speed * cos(math.radians(self.angletir))
-                        vy = -(9.8) * self.time + self.speed * sin(math.radians(self.angletir))
-                        self.speed = sqrt(pow(vy, 2) + pow(vx, 2))
-                        self.speed /= 1.8
-                        self.x0 = self.rect.x
-                        self.y0 = self.rect.y
-                        self.time = 0
-                        self.rebond += 1
+                        if tile[1].y > XandY[1]:
+                            vx = self.speed * cos(math.radians(self.angletir))
+                            vy = -(9.8) * self.time + self.speed * sin(math.radians(self.angletir))
+                            self.speed = sqrt(pow(vy, 2) + pow(vx, 2))
+                            self.speed /= 1.8
+                            self.x0 = self.rect.x
+                            self.y0 = self.rect.y
+                            self.time = 0
+                            self.rebond += 1
+                        else:
+                            self.time = 0
+                            self.x0 = self.rect.x
+                            self.speed = 0
                     else:
                         self.speed = 0
                     return
@@ -406,7 +414,7 @@ def main():
         def process_data(self, data):
             for y, row in enumerate(data):
                 for x, tile in enumerate(row):
-                    if tile >= 0:
+                    if tile>=0:
                         img = img_list[tile]
                         img_rect = img.get_rect()
                         img_rect.x = x * TILE_SIZE
@@ -415,13 +423,13 @@ def main():
                         if tile == 0 or tile == 1 or tile == 2:
                             self.Objet_list.append(tile_data)
                         if tile == 6:
-                            player = Character("character", x * TILE_SIZE, y * TILE_SIZE, 0.1, 5)
+                            player = Character("character", x * TILE_SIZE, y * TILE_SIZE, 0.09, 5)
                             health_bar = HealthBar(10, 40, player.health, player.health)
                             player_group.add(player)
                             allplayer_group.add(player)
                             player.turn_play = True
                         if tile == 7:
-                            player2 = Character("character", x * TILE_SIZE, y * TILE_SIZE, 0.1, 5)
+                            player2 = Character("character", x * TILE_SIZE, y * TILE_SIZE, 0.09, 5)
                             health_bar2 = HealthBar(screen_width - 160, 40, player2.health, player2.health)
                             player2_group.add(player2)
                             allplayer_group.add(player2)
@@ -465,10 +473,14 @@ def main():
 
 
 
-    start_button = startButton.Button(screen_width//2 - 130,screen_height // 2 - 150, start_img,1)
-    exit_button = startButton.Button(screen_width // 2 - 110, screen_height // 2 + 50, exit_img, 1)
-    restart_button = startButton.Button(screen_width // 2 - 100, screen_height // 2 - 50, restart_img, 2)
 
+    exit_button = startButton.Button(screen_width/2 - 120, 500, exit_img, 1)
+    mini_restart_button = startButton.Button(screen_width/2+120,10, mini_restart_img, 2)
+    restart_button = startButton.Button(screen_width // 2 - 100, screen_height // 2 - 50, restart_img, 2)
+    map_button = startButton.Button(screen_width/2 - 250, 100, map_0, 2)
+    map_button1 = startButton.Button(screen_width/2 - 250, 300, map_1, 2)
+    map_button2 = startButton.Button(screen_width /2, 300, map_2, 2)
+    map_button3 = startButton.Button(screen_width /2, 100, map_3, 2)
     grenade_group = pygame.sprite.Group()
     rocket_group = pygame.sprite.Group()
     explosion_group = pygame.sprite.Group()
@@ -477,33 +489,48 @@ def main():
     player2_group = pygame.sprite.Group()
     item_box_group = pygame.sprite.Group()
 
-    world_data = []
-    for row in range(ROWS):
-        r = [-1] * COLS
-        world_data.append(r)
-    nbMap = random.randint(0, 3)
-    strMap = str(3)+'.csv'
-    with open(strMap, newline='') as csvfile:
-        reader = csv.reader(csvfile, delimiter=',')
-        for x, row in enumerate(reader):
-            for y, tile in enumerate(row):
-                world_data[x][y] = int(tile)
+    def createMap(nbMap):
+        world_data = []
+        for row in range(ROWS):
+            r = [-1] * COLS
+            world_data.append(r)
+        strMap = str(nbMap) + '.csv'
+        with open(strMap, newline='') as csvfile:
+            reader = csv.reader(csvfile, delimiter=',')
+            for x, row in enumerate(reader):
+                for y, tile in enumerate(row):
+                    world_data[x][y] = int(tile)
+        return world_data
 
-    world = World()
-    player,health_bar,player2,health_bar2 = world.process_data(world_data)
     run = True
     #Affichage
     while run:
         clock.tick(FPS)
         if start_game == False:
             screen.fill(BG)
-            if start_button.draw(screen):
+            if map_button.draw(screen):
+                world = World()
+                player, health_bar, player2, health_bar2 = world.process_data(createMap(0))
+                start_game = True
+            if map_button1.draw(screen):
+                world = World()
+                player, health_bar, player2, health_bar2 = world.process_data(createMap(1))
+                start_game = True
+            if map_button2.draw(screen):
+                world = World()
+                player, health_bar, player2, health_bar2 = world.process_data(createMap(2))
+                start_game = True
+            if map_button3.draw(screen):
+                world = World()
+                player, health_bar, player2, health_bar2 = world.process_data(createMap(3))
                 start_game = True
             if exit_button.draw(screen):
                 run = False
         else:
             draw_bg()
             world.draw()
+            if mini_restart_button.draw(screen):
+                main()
             #affichage barre de vie
             draw_text("PLAYER 1", font, WHITE, 10, 10)
             health_bar.draw(player.health)
@@ -521,6 +548,11 @@ def main():
                     allplayer.update(True)
                     allplayer.update_animation(True)
                 if allplayer.turn_play and allplayer.alive:
+                    if allplayer.time_round >0:
+                        nbM = str(allplayer.time_round)
+                        draw_text("Points d'action :"+nbM, font, RED, screen_width/2-100, 10)
+                    else:
+                        draw_text("Points d'action : 0", font, RED, screen_width/2-100,10)
                     allplayer.move(moving_left, moving_right, True)
                     allplayer.update(True)
                     allplayer.update_animation(True)
